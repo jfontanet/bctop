@@ -33,8 +33,8 @@ pub struct App {
 
 impl App {
     pub fn new(io_tx: tokio::sync::mpsc::Sender<IoEvent>) -> Self {
-        let actions = vec![Action::Quit].into();
         let state = AppState::default();
+        let actions = state.get_actions();
         let containers = Vec::new();
 
         Self {
@@ -69,7 +69,6 @@ impl App {
     async fn do_state_monitoring_actions(&mut self, action: Action) -> AppReturn {
         match action {
             Action::Quit => AppReturn::Exit,
-            Action::Sleep => AppReturn::Continue,
             Action::ShowLogs => {
                 if self.selected_container.is_none() {
                     return AppReturn::Continue; // No container selected, do nothing
@@ -83,6 +82,7 @@ impl App {
                 )
                 .await;
                 self.logs = logs;
+                self.actions = self.state.get_actions();
                 AppReturn::Continue
             }
             Action::ExecCommands => AppReturn::Continue, // TODO
@@ -94,6 +94,7 @@ impl App {
                 self.previous();
                 AppReturn::Continue
             }
+            _ => AppReturn::Continue,
         }
     }
 
@@ -104,12 +105,10 @@ impl App {
                 self.logs.clear();
                 self.log_position = 0;
                 self.last_log_ts = chrono::Utc.timestamp(0, 0);
+                self.actions = self.state.get_actions();
                 AppReturn::Continue
             }
-            Action::Sleep => AppReturn::Continue,
-            Action::ShowLogs => AppReturn::Continue,
-            Action::ExecCommands => AppReturn::Continue, // Not available from here
-            Action::Next => {
+            Action::ScrollDown => {
                 self.log_position = if self.log_position > 0 {
                     self.log_position - 1
                 } else {
@@ -117,7 +116,7 @@ impl App {
                 };
                 AppReturn::Continue
             }
-            Action::Previous => {
+            Action::ScrollUp => {
                 self.log_position = if self.log_position + 1 < self.logs.len() {
                     self.log_position + 1
                 } else {
@@ -125,6 +124,8 @@ impl App {
                 };
                 AppReturn::Continue
             }
+            Action::Search => AppReturn::Continue, // TODO
+            _ => AppReturn::Continue,
         }
     }
 
@@ -211,19 +212,6 @@ impl App {
             .get(index as usize)
             .map_or(None, |c| Some(c.id.clone()));
     }
-
-    pub async fn initialized(&mut self) {
-        // Update contextual actions
-        self.actions = vec![
-            Action::Quit,
-            Action::Sleep,
-            Action::ShowLogs,
-            Action::ExecCommands,
-            Action::Next,
-            Action::Previous,
-        ]
-        .into();
-    }
 }
 
 impl ContainerManagement for App {
@@ -231,10 +219,6 @@ impl ContainerManagement for App {
         self.containers.retain(|c| c.id != new_container.id);
         self.containers.push(new_container);
         self.containers.sort_by(|a, b| a.name.cmp(&b.name));
-    }
-
-    fn new_log_line(&mut self, _container_id: &str, _log_line: &str) {
-        todo!()
     }
 
     fn remove_container(&mut self, id: &str) {

@@ -13,13 +13,12 @@ Terminal UI used to monitor and manage docker containers and services.
 - [X] Diffetentiate between swarm stack and compose projects (BE)
 - [~] Actions per state
 - [~] Monitoring UI
-    - [~] Prety
     - [ ] Menu on enter (Pop Up)
 - [ ] Logging UI
     - [X] Scrol
     - [X] Leave
+    - [X] Mouse Scroll
     - [~] Line Jumps
-    - [~] Mouse Scroll
     - [ ] Search
 - [ ] Exec commands UI
     - [ ] Input bar (with auto complete?)

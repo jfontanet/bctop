@@ -112,21 +112,22 @@ where
             )
             .highlight_style(selected_style)
             .widths(&[
-                Constraint::Length(1),  // Status
-                Constraint::Length(12), // ID
-                Constraint::Length(30), // Name
-                Constraint::Length(5),  // CPU
-                Constraint::Length(30), // MEM
-                Constraint::Length(25), // SERVICE
-                Constraint::Length(15), // STACK
+                Constraint::Length(1),      // Status
+                Constraint::Percentage(15), // ID
+                Constraint::Percentage(15), // Name
+                Constraint::Percentage(15), // CPU
+                Constraint::Percentage(15), // MEM
+                Constraint::Percentage(15), // SERVICE
+                Constraint::Percentage(15), // STACK
             ])
-            .column_spacing(1);
+            .column_spacing(2);
 
         let mut table_state = TableState::default();
         table_state.select(app.selected_container_index());
 
         frame.render_stateful_widget(t, chunks[0], &mut table_state);
-        draw_help(frame, chunks[1], "q: Quit | l: Show Logs");
+
+        draw_help(frame, chunks[1], format!("{}", app.actions()).as_str());
     } else if app.state().is_logging() {
         let logs = app.logs();
         let available_height = chunks[0].height as usize - 1; // -1 for the TOP border
@@ -158,7 +159,7 @@ where
 
         let p = Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title("Logs"));
         frame.render_widget(p, chunks[0]);
-        draw_help(frame, chunks[1], "q: Quit");
+        draw_help(frame, chunks[1], format!("{}", app.actions()).as_str());
     } else {
         let initialized_text = "Not Initialized !";
 

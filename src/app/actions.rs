@@ -8,23 +8,27 @@ use crate::inputs::key::Key;
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Action {
     Quit,
-    Sleep,
     ShowLogs,
     ExecCommands,
     Next,
     Previous,
+    ScrollUp,
+    ScrollDown,
+    Search,
 }
 
 impl Action {
     /// All available actions
     pub fn iterator() -> Iter<'static, Action> {
-        static ACTIONS: [Action; 6] = [
+        static ACTIONS: [Action; 8] = [
             Action::Quit,
-            Action::Sleep,
             Action::ShowLogs,
             Action::ExecCommands,
             Action::Next,
             Action::Previous,
+            Action::ScrollUp,
+            Action::ScrollDown,
+            Action::Search,
         ];
         ACTIONS.iter()
     }
@@ -32,12 +36,14 @@ impl Action {
     /// List of key associated to action
     pub fn keys(&self) -> &[Key] {
         match self {
-            Action::Quit => &[Key::Ctrl('c'), Key::Char('q')],
-            Action::Sleep => &[Key::Char('s')],
+            Action::Quit => &[Key::Char('q'), Key::Ctrl('c'), Key::Esc],
             Action::ShowLogs => &[Key::Char('l'), Key::Enter],
             Action::ExecCommands => &[Key::Char('e')],
-            Action::Next => &[Key::Char('n'), Key::Right, Key::Down],
-            Action::Previous => &[Key::Char('p'), Key::Left, Key::Up],
+            Action::Next => &[Key::Down, Key::Char('n'), Key::Right],
+            Action::Previous => &[Key::Up, Key::Char('p'), Key::Left],
+            Action::Search => &[Key::Char('/'), Key::Enter],
+            Action::ScrollUp => &[Key::Up],
+            Action::ScrollDown => &[Key::Down],
         }
     }
 }
@@ -47,13 +53,16 @@ impl Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let str = match self {
             Action::Quit => "Quit",
-            Action::Sleep => "Sleep",
             Action::ShowLogs => "Show Logs",
             Action::ExecCommands => "Exec CMD",
             Action::Next => "Next",
             Action::Previous => "Previous",
+            Action::Search => "Search",
+            Action::ScrollUp => "Scroll Up",
+            Action::ScrollDown => "Scroll Down",
         };
-        write!(f, "{}", str)
+        let key = self.keys().first().unwrap();
+        write!(f, "{} {}", key, str)
     }
 }
 
@@ -113,5 +122,17 @@ impl From<Vec<Action>> for Actions {
 
         // Ok, we can create contextual actions
         Self(actions)
+    }
+}
+
+impl Display for Actions {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let actions = self
+            .0
+            .iter()
+            .map(Action::to_string)
+            .collect::<Vec<_>>()
+            .join(" | ");
+        write!(f, "{}", actions)
     }
 }

@@ -104,7 +104,6 @@ impl From<String> for ContainerStatus {
 pub trait ContainerManagement {
     fn remove_container(&mut self, id: &str);
     fn update_containers(&mut self, new_container: Container);
-    fn new_log_line(&mut self, container_id: &str, log_line: &str);
 }
 
 pub async fn get_logs_from(

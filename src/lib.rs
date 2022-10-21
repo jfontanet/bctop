@@ -9,10 +9,10 @@ use io::IoEvent;
 use std::{io::stdout, sync::Arc, time::Duration};
 
 pub async fn start_ui(app: &Arc<tokio::sync::Mutex<App>>) -> Result<()> {
-    let mut stdout = stdout();
+    let mut stdout_ = stdout();
     crossterm::terminal::enable_raw_mode()?;
-    crossterm::execute!(stdout, crossterm::terminal::EnterAlternateScreen)?;
-    let backend = tui::backend::CrosstermBackend::new(stdout);
+    crossterm::execute!(stdout_, crossterm::terminal::EnterAlternateScreen)?;
+    let backend = tui::backend::CrosstermBackend::new(stdout_);
     let mut terminal = tui::Terminal::new(backend)?;
     terminal.clear()?;
     terminal.hide_cursor()?;
@@ -46,6 +46,7 @@ pub async fn start_ui(app: &Arc<tokio::sync::Mutex<App>>) -> Result<()> {
     terminal.clear()?;
     terminal.show_cursor()?;
     crossterm::terminal::disable_raw_mode()?;
+    crossterm::execute!(stdout(), crossterm::terminal::LeaveAlternateScreen)?;
 
     println!("");
     Ok(())

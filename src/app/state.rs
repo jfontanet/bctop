@@ -1,3 +1,5 @@
+use super::actions::{Action, Actions};
+
 #[derive(Clone)]
 pub enum AppState {
     Monitoring,
@@ -12,6 +14,29 @@ impl Default for AppState {
 }
 
 impl AppState {
+    pub fn get_actions(&self) -> Actions {
+        if self.is_monitoring() {
+            vec![
+                Action::Quit,
+                Action::ShowLogs,
+                Action::ExecCommands,
+                Action::Next,
+                Action::Previous,
+            ]
+            .into()
+        } else if self.is_logging() {
+            vec![
+                Action::Quit,
+                Action::ScrollDown,
+                Action::ScrollUp,
+                Action::Search,
+            ]
+            .into()
+        } else {
+            vec![Action::Quit].into()
+        }
+    }
+
     pub fn is_monitoring(&self) -> bool {
         matches!(self, &Self::Monitoring)
     }
