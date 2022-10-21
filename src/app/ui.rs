@@ -160,6 +160,9 @@ where
         let p = Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title("Logs"));
         frame.render_widget(p, chunks[0]);
         draw_help(frame, chunks[1], format!("{}", app.actions()).as_str());
+        if app.search().is_some() {
+            draw_search(frame, app.search().as_ref().unwrap());
+        }
     } else {
         let initialized_text = "Not Initialized !";
 
@@ -191,6 +194,26 @@ where
                 .border_type(BorderType::Plain),
         );
     frame.render_widget(p, chunk);
+}
+
+fn draw_search<B>(frame: &mut Frame<B>, search: &str)
+where
+    B: Backend,
+{
+    let p = Paragraph::new(vec![Spans::from(Span::raw(search))])
+        .style(Style::default().fg(Color::LightCyan))
+        .alignment(Alignment::Left)
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .title("Search")
+                .style(Style::default().fg(Color::White))
+                .border_type(BorderType::Plain),
+        );
+    frame.render_widget(
+        p,
+        Rect::new(0, frame.size().height - 2, frame.size().width, 2),
+    );
 }
 
 fn label_for_memory(mem_usage: f32, mem_total: f32) -> String {

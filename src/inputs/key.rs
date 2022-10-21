@@ -43,11 +43,6 @@ pub enum Key {
 }
 
 impl Key {
-    /// If exit
-    pub fn is_exit(&self) -> bool {
-        matches!(self, Key::Ctrl('c') | Key::Char('q') | Key::Esc)
-    }
-
     /// Returns the function key corresponding to the given number
     ///
     /// 1 -> F1, etc...
@@ -71,6 +66,15 @@ impl Key {
             11 => Key::F11,
             12 => Key::F12,
             _ => panic!("unknown function key: F{}", n),
+        }
+    }
+
+    pub fn get_char(&self) -> Option<char> {
+        match self {
+            Key::Char(c) => Some(*c),
+            Key::Ctrl(c) => Some(*c),
+            Key::Alt(c) => Some(*c),
+            _ => None,
         }
     }
 }

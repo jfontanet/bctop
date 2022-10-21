@@ -29,6 +29,7 @@ pub struct App {
     logs: Vec<String>,
     last_log_ts: chrono::DateTime<chrono::Utc>,
     log_position: usize, // Reverse index from where to start taking log lines
+    search: Option<String>,
 }
 
 impl App {
@@ -46,13 +47,19 @@ impl App {
             logs: Vec::new(),
             last_log_ts: chrono::Utc.timestamp(0, 0),
             log_position: 0,
+            search: None,
         }
     }
 
     /// Handle a user action
     pub async fn do_action(&mut self, key: Key) -> AppReturn {
+        if self.search().is_some() {
+            if let Some(c) = key.get_char() {
+                self.search = Some(format!("{}{}", self.search().as_ref().unwrap(), c));
+                return AppReturn::Continue;
+            }
+        }
         if let Some(action) = self.actions.find(key) {
-            // debug!("Run action [{:?}]", action);
             if self.state.is_monitoring() {
                 self.do_state_monitoring_actions(*action).await
             } else if self.state.is_logging() {
@@ -61,7 +68,6 @@ impl App {
                 AppReturn::Continue
             }
         } else {
-            // warn!("No action accociated to {}", key);
             AppReturn::Continue
         }
     }
@@ -101,6 +107,10 @@ impl App {
     async fn do_state_logging_actions(&mut self, action: Action) -> AppReturn {
         match action {
             Action::Quit => {
+                if self.search.is_some() {
+                    self.search = None;
+                    return AppReturn::Continue;
+                }
                 self.state = AppState::Monitoring;
                 self.logs.clear();
                 self.log_position = 0;
@@ -124,7 +134,21 @@ impl App {
                 };
                 AppReturn::Continue
             }
-            Action::Search => AppReturn::Continue, // TODO
+            Action::Search => {
+                if let Some(search_text) = self.search() {
+                    if let Some(line) = self
+                        .logs()
+                        .iter()
+                        .rev()
+                        .position(|line| line.contains(search_text))
+                    {
+                        self.log_position = line;
+                    }
+                } else {
+                    self.search = Some("".to_string());
+                }
+                AppReturn::Continue
+            } // TODO
             _ => AppReturn::Continue,
         }
     }
@@ -173,6 +197,9 @@ impl App {
     }
     pub fn log_position(&self) -> usize {
         self.log_position
+    }
+    pub fn search(&self) -> &Option<String> {
+        &self.search
     }
 
     pub fn next(&mut self) {
