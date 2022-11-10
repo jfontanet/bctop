@@ -14,11 +14,11 @@ Terminal UI used to monitor and manage docker containers and services.
 - [~] Actions per state
 - [~] Monitoring UI
     - [ ] Menu on enter (Pop Up)
-- [ ] Logging UI
+- [X] Logging UI
     - [X] Scrol
     - [X] Leave
     - [X] Mouse Scroll
-    - [~] Line Jumps
-    - [ ] Search
+    - [X] Line Jumps
+    - [X] Search
 - [ ] Exec commands UI
     - [ ] Input bar (with auto complete?)

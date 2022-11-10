@@ -140,9 +140,10 @@ impl App {
                         .logs()
                         .iter()
                         .rev()
+                        .skip(self.log_position + 1)
                         .position(|line| line.contains(search_text))
                     {
-                        self.log_position = line;
+                        self.log_position += line + 1;
                     }
                 } else {
                     self.search = Some("".to_string());
@@ -161,6 +162,7 @@ impl App {
                 self.selected_container.clone().unwrap(),
             )
             .await;
+            self.log_position += log_lines.len();
             self.logs.extend(log_lines);
             self.last_log_ts = chrono::Utc::now();
         }
