@@ -11,8 +11,8 @@ Terminal UI used to monitor and manage docker containers and services.
 - [X] Detect when a container has been removed
 - [X] Differentiate between individual containers, compose services and swarm services (BE)
 - [X] Diffetentiate between swarm stack and compose projects (BE)
-- [~] Actions per state
-- [~] Monitoring UI
+- [X] Actions per state
+- [ ] Monitoring UI
     - [ ] Menu on enter (Pop Up)
 - [X] Logging UI
     - [X] Scrol

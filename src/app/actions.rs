@@ -10,25 +10,29 @@ pub enum Action {
     Quit,
     ShowLogs,
     ExecCommands,
+    SendCMD,
     Next,
     Previous,
     ScrollUp,
     ScrollDown,
     Search,
+    Remove,
 }
 
 impl Action {
     /// All available actions
     pub fn iterator() -> Iter<'static, Action> {
-        static ACTIONS: [Action; 8] = [
+        static ACTIONS: [Action; 10] = [
             Action::Quit,
             Action::ShowLogs,
             Action::ExecCommands,
+            Action::SendCMD,
             Action::Next,
             Action::Previous,
             Action::ScrollUp,
             Action::ScrollDown,
             Action::Search,
+            Action::Remove,
         ];
         ACTIONS.iter()
     }
@@ -39,11 +43,13 @@ impl Action {
             Action::Quit => &[Key::Char('q'), Key::Ctrl('c'), Key::Esc],
             Action::ShowLogs => &[Key::Char('l'), Key::Enter],
             Action::ExecCommands => &[Key::Char('e')],
+            Action::SendCMD => &[Key::Enter],
             Action::Next => &[Key::Down, Key::Char('n'), Key::Right],
             Action::Previous => &[Key::Up, Key::Char('p'), Key::Left],
             Action::Search => &[Key::Char('/'), Key::Enter],
             Action::ScrollUp => &[Key::Up],
             Action::ScrollDown => &[Key::Down],
+            Action::Remove => &[Key::Backspace],
         }
     }
 }
@@ -55,11 +61,13 @@ impl Display for Action {
             Action::Quit => "Quit",
             Action::ShowLogs => "Show Logs",
             Action::ExecCommands => "Exec CMD",
+            Action::SendCMD => "Send CMD",
             Action::Next => "Next",
             Action::Previous => "Previous",
             Action::Search => "Search",
             Action::ScrollUp => "Scroll Up",
             Action::ScrollDown => "Scroll Down",
+            Action::Remove => "Remove",
         };
         let key = self.keys().first().unwrap();
         write!(f, "{} {}", key, str)

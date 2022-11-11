@@ -30,6 +30,10 @@ pub struct App {
     last_log_ts: chrono::DateTime<chrono::Utc>,
     log_position: usize, // Reverse index from where to start taking log lines
     search: Option<String>,
+    // Execution attributes
+    // exec_tx: tokio::sync::mpsc::Sender<String>,
+    // exec_rx: tokio::sync::mpsc::Receiver<String>,
+    exec_cmd: String,
 }
 
 impl App {
@@ -48,6 +52,7 @@ impl App {
             last_log_ts: chrono::Utc.timestamp(0, 0),
             log_position: 0,
             search: None,
+            exec_cmd: String::new(),
         }
     }
 
@@ -59,11 +64,19 @@ impl App {
                 return AppReturn::Continue;
             }
         }
+        if self.state().is_exec_command() {
+            if let Some(c) = key.get_char() {
+                self.exec_cmd.push(c);
+                return AppReturn::Continue;
+            }
+        }
         if let Some(action) = self.actions.find(key) {
             if self.state.is_monitoring() {
                 self.do_state_monitoring_actions(*action).await
             } else if self.state.is_logging() {
                 self.do_state_logging_actions(*action).await
+            } else if self.state.is_exec_command() {
+                self.do_state_exec_command_actions(*action).await
             } else {
                 AppReturn::Continue
             }
@@ -87,11 +100,21 @@ impl App {
                     self.selected_container.clone().unwrap(),
                 )
                 .await;
+                self.last_log_ts = chrono::Utc::now();
                 self.logs = logs;
                 self.actions = self.state.get_actions();
                 AppReturn::Continue
             }
-            Action::ExecCommands => AppReturn::Continue, // TODO
+            Action::ExecCommands => {
+                if self.selected_container.is_none() {
+                    return AppReturn::Continue; // No container selected, do nothing
+                }
+                self.state = AppState::ExecCommand {
+                    container: self.selected_container.clone().unwrap(),
+                };
+                self.exec_cmd = String::new();
+                AppReturn::Continue
+            } // TODO
             Action::Next => {
                 self.next();
                 AppReturn::Continue
@@ -149,20 +172,45 @@ impl App {
                     self.search = Some("".to_string());
                 }
                 AppReturn::Continue
-            } // TODO
+            }
+            Action::Remove => {
+                if let Some(search_text) = self.search() {
+                    let mut new_text = search_text.clone();
+                    new_text.pop();
+                    self.search = Some(new_text);
+                }
+                AppReturn::Continue
+            }
+            _ => AppReturn::Continue,
+        }
+    }
+
+    async fn do_state_exec_command_actions(&mut self, action: Action) -> AppReturn {
+        match action {
+            Action::Quit => {
+                self.state = AppState::Monitoring;
+                self.actions = self.state.get_actions();
+                AppReturn::Continue
+            }
+            Action::SendCMD => {
+                AppReturn::Continue // TODO
+            }
             _ => AppReturn::Continue,
         }
     }
 
     /// We could update the app or dispatch event on tick
     pub async fn update_on_tick(&mut self) -> AppReturn {
-        if self.state().is_logging() && self.selected_container.is_some() {
+        if self.state().is_logging()
+            && self.selected_container.is_some()
+            && self.log_position() == 0
+        {
             let log_lines = container_management::get_logs_from(
                 &self.last_log_ts,
                 self.selected_container.clone().unwrap(),
             )
             .await;
-            self.log_position += log_lines.len();
+
             self.logs.extend(log_lines);
             self.last_log_ts = chrono::Utc::now();
         }
@@ -202,6 +250,9 @@ impl App {
     }
     pub fn search(&self) -> &Option<String> {
         &self.search
+    }
+    pub fn exec_cmd(&self) -> &String {
+        &self.exec_cmd
     }
 
     pub fn next(&mut self) {

@@ -30,8 +30,11 @@ impl AppState {
                 Action::ScrollDown,
                 Action::ScrollUp,
                 Action::Search,
+                Action::Remove,
             ]
             .into()
+        } else if self.is_exec_command() {
+            vec![Action::Quit, Action::SendCMD].into()
         } else {
             vec![Action::Quit].into()
         }
