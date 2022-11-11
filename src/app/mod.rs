@@ -164,7 +164,10 @@ impl App {
                         .iter()
                         .rev()
                         .skip(self.log_position + 1)
-                        .position(|line| line.contains(search_text))
+                        .position(|line| {
+                            line.to_lowercase()
+                                .contains(&search_text.clone().to_lowercase())
+                        })
                     {
                         self.log_position += line + 1;
                     }
