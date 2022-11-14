@@ -24,7 +24,7 @@ pub async fn start_ui(app: &Arc<tokio::sync::Mutex<App>>) -> Result<()> {
     {
         let mut app = app.lock().await;
         // Here we assume the the first load is a long task
-        app.dispatch(IoEvent::Initialize).await;
+        app.dispatch(IoEvent::StartMonitoring).await;
     }
 
     loop {

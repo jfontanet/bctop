@@ -1,42 +1,67 @@
 use eyre::Result;
-// use log::{error, info};
-use std::{sync::Arc, time::Duration};
+use log::{debug, error};
+use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::task::JoinHandle;
 
 use super::IoEvent;
 
-use crate::app::container_management::start_management_process;
+use crate::app::container_management::{start_management_process, start_monitoring_logs};
 use crate::app::App;
 
 pub struct IoAsyncHandler {
     app: Arc<Mutex<App>>,
+    active_task: Option<JoinHandle<()>>,
 }
 
 impl IoAsyncHandler {
     pub fn new(app: Arc<tokio::sync::Mutex<App>>) -> Self {
-        Self { app }
+        Self {
+            app,
+            active_task: None,
+        }
     }
 
     /// We could be async here
     pub async fn handle_io_event(&mut self, io_event: IoEvent) {
         let result = match io_event {
-            IoEvent::Initialize => self.do_initialize().await,
-            IoEvent::Sleep(duration) => self.do_sleep(duration).await,
+            IoEvent::StartMonitoring => self.start_management().await,
+            IoEvent::ShowLogs(container_id) => self.start_logs_monitoring(container_id).await,
         };
 
-        if let Err(_err) = result {
-            // error!("Oops, something wrong happen: {:?}", err);
+        if let Err(err) = result {
+            error!("Oops, something wrong happen: {:?}", err);
         }
-        // let mut app = self.app.lock().await;
     }
 
-    async fn do_initialize(&mut self) -> Result<()> {
-        start_management_process(Arc::clone(&self.app)).await;
+    async fn start_management(&mut self) -> Result<()> {
+        self.abort_current_task().await;
+        let app = Arc::clone(&self.app);
+        let t = tokio::spawn(async move {
+            start_management_process(app).await;
+        });
+        self.active_task = Some(t);
         Ok(())
     }
 
-    async fn do_sleep(&mut self, duration: Duration) -> Result<()> {
-        tokio::time::sleep(duration).await;
+    async fn start_logs_monitoring(&mut self, container_id: String) -> Result<()> {
+        self.abort_current_task().await;
+        debug!("Start monitoring logs for container: {}", container_id);
+        let app = Arc::clone(&self.app);
+        let t = tokio::spawn(async move {
+            start_monitoring_logs(container_id, app).await;
+        });
+        self.active_task = Some(t);
         Ok(())
+    }
+
+    async fn abort_current_task(&mut self) {
+        if let Some(task) = self.active_task.take() {
+            task.abort();
+            match task.await {
+                Ok(_) => return,
+                Err(_) => return,
+            };
+        }
     }
 }

@@ -7,6 +7,8 @@ use bollard::Docker;
 
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::service::ContainerSummary;
+use chrono::TimeZone;
+use chrono::Utc;
 use futures::stream::StreamExt;
 use log::error;
 use tokio::sync::Mutex;
@@ -125,29 +127,6 @@ async fn update_container(
     manager.lock().await.update_containers(container);
 }
 
-pub async fn get_logs_from(
-    from: &chrono::DateTime<chrono::Utc>,
-    container_id: String,
-) -> Vec<String> {
-    let docker = Docker::connect_with_local_defaults().unwrap();
-    let mut logs = docker.logs(
-        &container_id,
-        Some(LogsOptions {
-            since: from.timestamp(),
-            follow: false,
-            stdout: true,
-            stderr: true,
-            tail: "all",
-            ..Default::default()
-        }),
-    );
-    let mut lines = Vec::new();
-    while let Some(Ok(chunk)) = logs.next().await {
-        lines.push(format!("{}", chunk));
-    }
-    lines
-}
-
 pub async fn enter_tty(container_id: String) {
     let docker = Docker::connect_with_local_defaults().unwrap();
     let exec = docker
@@ -171,4 +150,33 @@ pub async fn enter_tty(container_id: String) {
     //     mut input,
     // } = docker.start_exec(&exec, None).await.unwrap()
     // {}
+}
+
+pub async fn start_monitoring_logs(
+    container_id: String,
+    manager: Arc<Mutex<impl ContainerManagement + std::marker::Send + 'static>>,
+) {
+    let docker = Docker::connect_with_local_defaults().unwrap();
+    let mut now = Utc.timestamp(0, 0);
+
+    loop {
+        let mut logs = docker.logs(
+            &container_id,
+            Some(LogsOptions {
+                since: now.timestamp(),
+                follow: false,
+                stdout: true,
+                stderr: true,
+                tail: "all",
+                ..Default::default()
+            }),
+        );
+        let mut logs_vec = Vec::new();
+        while let Some(Ok(chunk)) = logs.next().await {
+            logs_vec.push(format!("{}", chunk));
+        }
+        now = Utc::now();
+        manager.lock().await.add_logs(logs_vec);
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    }
 }

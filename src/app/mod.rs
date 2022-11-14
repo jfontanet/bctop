@@ -5,8 +5,6 @@ pub mod ui;
 
 use crate::{inputs::key::Key, io::IoEvent};
 use actions::{Action, Actions};
-use chrono::TimeZone;
-// use log::{debug, error, warn};
 use state::AppState;
 
 use self::container_management::{Container, ContainerManagement};
@@ -27,7 +25,6 @@ pub struct App {
     selected_container: Option<String>,
     // Logging attributes
     logs: Vec<String>,
-    last_log_ts: chrono::DateTime<chrono::Utc>,
     log_position: usize, // Reverse index from where to start taking log lines
     search: Option<String>,
     // Execution attributes
@@ -49,7 +46,6 @@ impl App {
             state,
             selected_container: None,
             logs: Vec::new(),
-            last_log_ts: chrono::Utc.timestamp(0, 0),
             log_position: 0,
             search: None,
             exec_cmd: String::new(),
@@ -95,14 +91,9 @@ impl App {
                 self.state = AppState::Logging {
                     container: self.selected_container.clone().unwrap(),
                 };
-                let logs = container_management::get_logs_from(
-                    &self.last_log_ts,
-                    self.selected_container.clone().unwrap(),
-                )
-                .await;
-                self.last_log_ts = chrono::Utc::now();
-                self.logs = logs;
                 self.actions = self.state.get_actions();
+                self.dispatch(IoEvent::ShowLogs(self.selected_container.clone().unwrap()))
+                    .await;
                 AppReturn::Continue
             }
             Action::ExecCommands => {
@@ -112,6 +103,7 @@ impl App {
                 self.state = AppState::ExecCommand {
                     container: self.selected_container.clone().unwrap(),
                 };
+                self.actions = self.state.get_actions();
                 self.exec_cmd = String::new();
                 AppReturn::Continue
             } // TODO
@@ -137,8 +129,8 @@ impl App {
                 self.state = AppState::Monitoring;
                 self.logs.clear();
                 self.log_position = 0;
-                self.last_log_ts = chrono::Utc.timestamp(0, 0);
                 self.actions = self.state.get_actions();
+                self.dispatch(IoEvent::StartMonitoring).await;
                 AppReturn::Continue
             }
             Action::ScrollDown => {
@@ -204,25 +196,11 @@ impl App {
 
     /// We could update the app or dispatch event on tick
     pub async fn update_on_tick(&mut self) -> AppReturn {
-        if self.state().is_logging()
-            && self.selected_container.is_some()
-            && self.log_position() == 0
-        {
-            let log_lines = container_management::get_logs_from(
-                &self.last_log_ts,
-                self.selected_container.clone().unwrap(),
-            )
-            .await;
-
-            self.logs.extend(log_lines);
-            self.last_log_ts = chrono::Utc::now();
-        }
         AppReturn::Continue
     }
 
     /// Send a network event to the IO thread
     pub async fn dispatch(&mut self, action: IoEvent) {
-        // `is_loading` will be set to false again after the async action has finished in io/handler.rs
         if let Err(_e) = self.io_tx.send(action).await {
             // error!("Error from dispatch {}", e);
         };
@@ -306,5 +284,12 @@ impl ContainerManagement for App {
 
     fn remove_container(&mut self, id: &str) {
         self.containers.retain(|c| c.id != id);
+    }
+
+    fn add_logs(&mut self, logs: Vec<String>) {
+        if self.log_position != 0 {
+            self.log_position += logs.len();
+        }
+        self.logs.extend(logs);
     }
 }

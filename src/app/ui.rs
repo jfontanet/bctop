@@ -133,7 +133,7 @@ where
         let available_height = chunks[0].height as usize - 1; // -1 for the TOP border
         let available_width = chunks[0].width as usize;
         let pos = app.log_position();
-        let logs = logs
+        let logs = match logs
             .iter()
             .rev()
             .take(available_height + pos)
@@ -154,8 +154,10 @@ where
             .reduce(|mut acc, v| {
                 acc.extend(v);
                 acc
-            })
-            .unwrap(); // TODO show last lines (line breaks hide them)
+            }) {
+            Some(t) => t,
+            None => Text::raw(""),
+        }; // TODO show last lines (line breaks hide them)
 
         let p = Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title("Logs"));
         frame.render_widget(p, chunks[0]);

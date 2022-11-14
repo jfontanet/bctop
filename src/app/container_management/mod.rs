@@ -1,6 +1,6 @@
 mod docker;
 
-pub use docker::{enter_tty, get_logs_from, start_management_process};
+pub use docker::{enter_tty, start_management_process, start_monitoring_logs};
 
 #[derive(Debug, Clone)]
 pub struct Container {
@@ -48,4 +48,5 @@ impl From<String> for ContainerStatus {
 pub trait ContainerManagement {
     fn remove_container(&mut self, id: &str);
     fn update_containers(&mut self, new_container: Container);
+    fn add_logs(&mut self, logs: Vec<String>);
 }
