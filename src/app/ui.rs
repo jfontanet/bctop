@@ -161,9 +161,12 @@ where
             }) {
             Some(t) => t,
             None => Text::raw(""),
-        }; // TODO show last lines (line breaks hide them)
+        };
 
-        let p = Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title("Logs"));
+        let p = Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title(format!(
+            "Logs for {}",
+            app.selected_container().as_ref().unwrap()
+        )));
         frame.render_widget(p, chunks[0]);
         if app.search().is_some() {
             draw_search(frame, app.search().as_ref().unwrap());
