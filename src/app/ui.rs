@@ -30,11 +30,13 @@ where
     B: Backend,
 {
     if app.state.is_monitoring() {
+        let available_width = chunks[0].width as usize;
+
         let containers = app.containers();
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
 
-        let header_cells = ["", "ID", "Name", "CPU%", "MEM", "SERVICE", "STACK"]
+        let header_cells = ["", "ID", "CPU%", "MEM", "SERVICE", "STACK"]
             .iter()
             .map(|h| Cell::from(*h).style(Style::default().fg(Color::LightCyan)));
         let header = Row::new(header_cells).height(1).bottom_margin(1);
@@ -50,7 +52,8 @@ where
                 crate::app::container_management::ContainerStatus::Paused => {
                     Span::styled(" ", Style::default().bg(Color::Yellow))
                 }
-                crate::app::container_management::ContainerStatus::Stopped => {
+                crate::app::container_management::ContainerStatus::Stopped
+                | crate::app::container_management::ContainerStatus::Exited => {
                     Span::styled(" ", Style::default().bg(Color::Red))
                 }
                 crate::app::container_management::ContainerStatus::Restarting => {
@@ -59,9 +62,6 @@ where
                 crate::app::container_management::ContainerStatus::Removing => {
                     Span::styled(" ", Style::default().bg(Color::LightRed))
                 }
-                crate::app::container_management::ContainerStatus::Exited => {
-                    Span::styled(" ", Style::default().bg(Color::LightMagenta))
-                }
                 crate::app::container_management::ContainerStatus::Dead => {
                     Span::styled(" ", Style::default().bg(Color::Black))
                 }
@@ -69,13 +69,17 @@ where
             let cpu = c.cpu_usage;
             let mem_usage = c.memory_usage_bytes;
             let mem_total = c.memory_limit_bytes;
-            let service = c.swarm_service.clone().unwrap_or_default();
             let stack = c.swarm_stack.clone().unwrap_or_default();
+            let service = c
+                .swarm_service
+                .clone()
+                .unwrap_or_default()
+                .replace(format!("{}_", stack).as_str(), "");
 
             let mem = label_for_memory(mem_usage, mem_total);
-            const MEM_WIDTH: usize = 30;
-            let num_green_chars = (mem_usage / mem_total * MEM_WIDTH as f32) as usize;
-            let mut mem_label = [' ' as u8; MEM_WIDTH];
+            let mem_width: usize = (available_width as f32 * 0.2) as usize;
+            let num_green_chars = (mem_usage / mem_total * mem_width as f32) as usize;
+            let mut mem_label = vec![' ' as u8; mem_width];
             // let start = mem_width - mem.chars().count() / 2;
             for (i, c) in mem.chars().enumerate() {
                 if i >= 30 {
@@ -87,13 +91,13 @@ where
             let normal_label = String::from_utf8(mem_label[num_green_chars..].to_vec()).unwrap();
             let mem_label = Spans::from(vec![
                 Span::styled(green_label, Style::default().bg(Color::Green)),
-                Span::raw(normal_label),
+                Span::styled(normal_label, Style::default().bg(Color::DarkGray)),
             ]);
 
             Row::new(vec![
                 Cell::from(status_label),
                 Cell::from(c.id.clone()),
-                Cell::from(c.name.clone()),
+                // Cell::from(c.name.clone()),
                 Cell::from(label_for_cpu(cpu)),
                 Cell::from(mem_label),
                 Cell::from(service),
@@ -112,11 +116,11 @@ where
             )
             .highlight_style(selected_style)
             .widths(&[
-                Constraint::Length(1),      // Status
-                Constraint::Percentage(15), // ID
-                Constraint::Percentage(15), // Name
-                Constraint::Percentage(15), // CPU
-                Constraint::Percentage(15), // MEM
+                Constraint::Length(1),  // Status
+                Constraint::Length(12), // ID
+                // Constraint::Percentage(15), // Name
+                Constraint::Length(5),      // CPU
+                Constraint::Percentage(20), // MEM
                 Constraint::Percentage(15), // SERVICE
                 Constraint::Percentage(15), // STACK
             ])

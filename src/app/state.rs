@@ -22,6 +22,7 @@ impl AppState {
                 Action::ExecCommands,
                 Action::Next,
                 Action::Previous,
+                Action::StopContainer,
             ]
             .into()
         } else if self.is_logging() {

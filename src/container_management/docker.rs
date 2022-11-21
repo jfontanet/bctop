@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::panic;
 use std::sync::Arc;
 
-use bollard::container::{ListContainersOptions, LogsOptions, StatsOptions};
+use bollard::container::{ListContainersOptions, LogsOptions, StatsOptions, StopContainerOptions};
 use bollard::Docker;
 
 use bollard::exec::{CreateExecOptions, StartExecResults};
@@ -10,7 +10,7 @@ use bollard::service::ContainerSummary;
 use chrono::TimeZone;
 use chrono::Utc;
 use futures::stream::StreamExt;
-use log::error;
+use log::{debug, error, info};
 use tokio::sync::Mutex;
 
 use super::{Container, ContainerManagement, ContainerStatus};
@@ -36,6 +36,7 @@ pub async fn start_management_process(
             .map(|item| item.id.as_ref().unwrap_or(&String::from("")).to_string())
             .collect();
         let contaienrs_to_remove = &alive_container_ids - &container_ids;
+        info!("Containers to remove: {:?}", contaienrs_to_remove);
         for container_id in contaienrs_to_remove {
             manager.lock().await.remove_container(&container_id);
         }
@@ -74,6 +75,8 @@ async fn update_container(
     let container_id = container_summary.id.unwrap();
     let labels = container_summary.labels.unwrap_or(HashMap::new());
 
+    debug!("Updating container: {}", container_id);
+
     let stream = &mut docker
         .stats(
             &container_id,
@@ -85,25 +88,31 @@ async fn update_container(
         .take(1);
     let stats = match stream.next().await {
         Some(Ok(s)) => s,
-        _ => return,
+        _ => {
+            error!("Error getting stats for container: {}", container_id);
+            return;
+        }
     };
-    let cpu_container_usage =
-        stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
-    let csu = match stats.cpu_stats.system_cpu_usage {
-        Some(s) => s,
-        None => return,
-    };
-    let psu = match stats.precpu_stats.system_cpu_usage {
-        Some(s) => s,
-        None => return,
-    };
-    let cpu_system_usage = csu - psu;
-    let cpu_usage = cpu_container_usage as f32 / cpu_system_usage as f32
-        * 100.0
-        * stats.cpu_stats.online_cpus.unwrap_or(1) as f32;
 
-    let memory_usage = stats.memory_stats.usage.unwrap() as f32;
-    let memory_limit = stats.memory_stats.limit.unwrap() as f32;
+    let cpu_container_usage = stats
+        .cpu_stats
+        .cpu_usage
+        .total_usage
+        .checked_sub(stats.precpu_stats.cpu_usage.total_usage)
+        .unwrap_or(0u64);
+    let csu = stats.cpu_stats.system_cpu_usage.unwrap_or(0);
+    let psu = stats.precpu_stats.system_cpu_usage.unwrap_or(0);
+    let cpu_system_usage = csu - psu;
+    let cpu_usage = if cpu_system_usage > 0 {
+        cpu_container_usage as f32 / cpu_system_usage as f32
+            * 100.0
+            * stats.cpu_stats.online_cpus.unwrap_or(1) as f32
+    } else {
+        0.0
+    };
+
+    let memory_usage = stats.memory_stats.usage.unwrap_or(0) as f32;
+    let memory_limit = stats.memory_stats.limit.unwrap_or(0) as f32;
 
     let container = Container {
         id: container_id,
@@ -179,4 +188,18 @@ pub async fn start_monitoring_logs(
         manager.lock().await.add_logs(logs_vec);
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
+}
+
+pub async fn stop_container(container_id: String) {
+    let docker = Docker::connect_with_local_defaults().unwrap();
+    docker
+        .stop_container(
+            &container_id,
+            Some(StopContainerOptions {
+                t: 10,
+                ..Default::default()
+            }),
+        )
+        .await
+        .unwrap();
 }

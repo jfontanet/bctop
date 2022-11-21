@@ -4,4 +4,5 @@ pub mod handler;
 pub enum IoEvent {
     StartMonitoring,
     ShowLogs(String),
+    StopContainer(String),
 }

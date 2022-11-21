@@ -1,6 +1,6 @@
 mod docker;
 
-pub use docker::{enter_tty, start_management_process, start_monitoring_logs};
+pub use docker::{enter_tty, start_management_process, start_monitoring_logs, stop_container};
 
 #[derive(Debug, Clone)]
 pub struct Container {

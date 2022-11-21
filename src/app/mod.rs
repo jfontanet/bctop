@@ -1,5 +1,5 @@
 pub mod actions;
-pub mod container_management;
+use crate::container_management;
 pub mod state;
 pub mod ui;
 
@@ -113,6 +113,16 @@ impl App {
             }
             Action::Previous => {
                 self.previous();
+                AppReturn::Continue
+            }
+            Action::StopContainer => {
+                if self.selected_container.is_none() {
+                    return AppReturn::Continue; // No container selected, do nothing
+                }
+                self.dispatch(IoEvent::StopContainer(
+                    self.selected_container.clone().unwrap(),
+                ))
+                .await;
                 AppReturn::Continue
             }
             _ => AppReturn::Continue,

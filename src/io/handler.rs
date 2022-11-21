@@ -1,13 +1,15 @@
 use eyre::Result;
-use log::{debug, error};
+use log::{error, info};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use super::IoEvent;
 
-use crate::app::container_management::{start_management_process, start_monitoring_logs};
 use crate::app::App;
+use crate::container_management::{
+    start_management_process, start_monitoring_logs, stop_container,
+};
 
 pub struct IoAsyncHandler {
     app: Arc<Mutex<App>>,
@@ -27,6 +29,7 @@ impl IoAsyncHandler {
         let result = match io_event {
             IoEvent::StartMonitoring => self.start_management().await,
             IoEvent::ShowLogs(container_id) => self.start_logs_monitoring(container_id).await,
+            IoEvent::StopContainer(container_id) => self.stop_container(container_id).await,
         };
 
         if let Err(err) = result {
@@ -46,7 +49,7 @@ impl IoAsyncHandler {
 
     async fn start_logs_monitoring(&mut self, container_id: String) -> Result<()> {
         self.abort_current_task().await;
-        debug!("Start monitoring logs for container: {}", container_id);
+        info!("Start monitoring logs for container: {}", container_id);
         let app = Arc::clone(&self.app);
         let t = tokio::spawn(async move {
             start_monitoring_logs(container_id, app).await;
@@ -63,5 +66,12 @@ impl IoAsyncHandler {
                 Err(_) => return,
             };
         }
+    }
+
+    async fn stop_container(&mut self, container_id: String) -> Result<()> {
+        self.abort_current_task().await;
+        info!("Stop container: {}", container_id);
+        stop_container(container_id).await;
+        Ok(())
     }
 }
