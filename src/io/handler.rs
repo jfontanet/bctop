@@ -8,7 +8,7 @@ use super::IoEvent;
 
 use crate::app::App;
 use crate::container_management::{
-    start_management_process, start_monitoring_logs, stop_container,
+    pause_container, start_management_process, start_monitoring_logs, stop_container,
 };
 
 pub struct IoAsyncHandler {
@@ -30,6 +30,7 @@ impl IoAsyncHandler {
             IoEvent::StartMonitoring => self.start_management().await,
             IoEvent::ShowLogs(container_id) => self.start_logs_monitoring(container_id).await,
             IoEvent::StopContainer(container_id) => self.stop_container(container_id).await,
+            IoEvent::PauseContainer(container_id) => self.pause_container(container_id).await,
         };
 
         if let Err(err) = result {
@@ -72,6 +73,13 @@ impl IoAsyncHandler {
         self.abort_current_task().await;
         info!("Stop container: {}", container_id);
         stop_container(container_id).await;
+        Ok(())
+    }
+
+    async fn pause_container(&mut self, container_id: String) -> Result<()> {
+        self.abort_current_task().await;
+        info!("Pause container: {}", container_id);
+        pause_container(container_id).await;
         Ok(())
     }
 }

@@ -125,6 +125,16 @@ impl App {
                 .await;
                 AppReturn::Continue
             }
+            Action::PauseContainer => {
+                if self.selected_container.is_none() {
+                    return AppReturn::Continue; // No container selected, do nothing
+                }
+                self.dispatch(IoEvent::PauseContainer(
+                    self.selected_container.clone().unwrap(),
+                ))
+                .await;
+                AppReturn::Continue
+            }
             _ => AppReturn::Continue,
         }
     }

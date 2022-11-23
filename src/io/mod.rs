@@ -5,4 +5,5 @@ pub enum IoEvent {
     StartMonitoring,
     ShowLogs(String),
     StopContainer(String),
+    PauseContainer(String),
 }

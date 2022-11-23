@@ -6,7 +6,7 @@ use bollard::container::{ListContainersOptions, LogsOptions, StatsOptions, StopC
 use bollard::Docker;
 
 use bollard::exec::{CreateExecOptions, StartExecResults};
-use bollard::service::ContainerSummary;
+use bollard::service::{ContainerStateStatusEnum, ContainerSummary};
 use chrono::TimeZone;
 use chrono::Utc;
 use futures::stream::StreamExt;
@@ -202,4 +202,27 @@ pub async fn stop_container(container_id: String) {
         )
         .await
         .unwrap();
+}
+
+pub async fn pause_container(container_id: String) {
+    let docker = Docker::connect_with_local_defaults().unwrap();
+    match docker.inspect_container(&container_id, None).await {
+        Ok(container) => {
+            let status = container
+                .state
+                .unwrap_or_default()
+                .status
+                .unwrap_or(ContainerStateStatusEnum::EMPTY);
+            if status == ContainerStateStatusEnum::RUNNING {
+                docker.pause_container(&container_id).await.unwrap();
+            } else if status == ContainerStateStatusEnum::PAUSED {
+                docker.unpause_container(&container_id).await.unwrap();
+            } else {
+                debug!("Container is not running or paused");
+            }
+        }
+        Err(e) => {
+            error!("Error pausing container: {}", e);
+        }
+    };
 }

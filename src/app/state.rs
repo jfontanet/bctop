@@ -23,6 +23,7 @@ impl AppState {
                 Action::Next,
                 Action::Previous,
                 Action::StopContainer,
+                Action::PauseContainer,
             ]
             .into()
         } else if self.is_logging() {
