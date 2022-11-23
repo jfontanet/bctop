@@ -36,7 +36,7 @@ where
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
 
-        let header_cells = ["", "ID", "CPU%", "MEM", "SERVICE", "STACK"]
+        let header_cells = ["", "ID", "SERVICE", "CPU%", "MEM", "STACK"]
             .iter()
             .map(|h| Cell::from(*h).style(Style::default().fg(Color::LightCyan)));
         let header = Row::new(header_cells).height(1).bottom_margin(1);
@@ -98,9 +98,9 @@ where
                 Cell::from(status_label),
                 Cell::from(c.id.clone()),
                 // Cell::from(c.name.clone()),
+                Cell::from(service),
                 Cell::from(label_for_cpu(cpu)),
                 Cell::from(mem_label),
-                Cell::from(service),
                 Cell::from(stack),
             ])
             .height(1)
@@ -119,9 +119,9 @@ where
                 Constraint::Length(1),  // Status
                 Constraint::Length(12), // ID
                 // Constraint::Percentage(15), // Name
+                Constraint::Percentage(15), // SERVICE
                 Constraint::Length(5),      // CPU
                 Constraint::Percentage(20), // MEM
-                Constraint::Percentage(15), // SERVICE
                 Constraint::Percentage(15), // STACK
             ])
             .column_spacing(2);
