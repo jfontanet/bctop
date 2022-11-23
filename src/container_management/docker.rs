@@ -11,7 +11,10 @@ use chrono::TimeZone;
 use chrono::Utc;
 use futures::stream::StreamExt;
 use log::{debug, error, info};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
+
+use crate::io::SessionObject;
 
 use super::{Container, ContainerManagement, ContainerStatus};
 
@@ -136,11 +139,14 @@ async fn update_container(
     manager.lock().await.update_containers(container);
 }
 
-pub async fn enter_tty(container_id: String) {
+pub async fn enter_tty(
+    session: SessionObject,
+    app: Arc<Mutex<impl ContainerManagement + std::marker::Send + 'static>>,
+) {
     let docker = Docker::connect_with_local_defaults().unwrap();
     let exec = docker
         .create_exec(
-            &container_id,
+            &session.container_id,
             CreateExecOptions {
                 attach_stdout: Some(true),
                 attach_stderr: Some(true),
@@ -154,11 +160,22 @@ pub async fn enter_tty(container_id: String) {
         .unwrap()
         .id;
 
-    // if let StartExecResults::Attached {
-    //     mut output,
-    //     mut input,
-    // } = docker.start_exec(&exec, None).await.unwrap()
-    // {}
+    if let StartExecResults::Attached {
+        mut output,
+        mut input,
+    } = docker.start_exec(&exec, None).await.unwrap()
+    {
+        let mut rx = session.rx_channel;
+        tokio::spawn(async move {
+            while let Some(txt) = rx.recv().await {
+                input.write_all(txt.as_bytes()).await.unwrap();
+            }
+        });
+
+        while let Some(Ok(chunk)) = output.next().await {
+            app.lock().await.add_tty_output(format!("{}", chunk));
+        }
+    }
 }
 
 pub async fn start_monitoring_logs(

@@ -51,4 +51,5 @@ pub trait ContainerManagement {
     fn remove_container(&mut self, id: &str);
     fn update_containers(&mut self, new_container: Container);
     fn add_logs(&mut self, logs: Vec<String>);
+    fn add_tty_output(&mut self, output: String);
 }

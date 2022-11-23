@@ -3,6 +3,7 @@ use crate::container_management;
 pub mod state;
 pub mod ui;
 
+use crate::io::SessionObject;
 use crate::{inputs::key::Key, io::IoEvent};
 use actions::{Action, Actions};
 use state::AppState;
@@ -28,8 +29,7 @@ pub struct App {
     log_position: usize, // Reverse index from where to start taking log lines
     search: Option<String>,
     // Execution attributes
-    // exec_tx: tokio::sync::mpsc::Sender<String>,
-    // exec_rx: tokio::sync::mpsc::Receiver<String>,
+    exec_tx: Option<tokio::sync::mpsc::Sender<String>>,
     exec_cmd: String,
 }
 
@@ -48,6 +48,7 @@ impl App {
             logs: Vec::new(),
             log_position: 0,
             search: None,
+            exec_tx: None,
             exec_cmd: String::new(),
         }
     }
@@ -105,6 +106,15 @@ impl App {
                 };
                 self.actions = self.state.get_actions();
                 self.exec_cmd = String::new();
+
+                let (app_tx, exec_rx) = tokio::sync::mpsc::channel::<String>(100);
+
+                self.exec_tx = Some(app_tx);
+                self.dispatch(IoEvent::StartExecSession(SessionObject {
+                    container_id: self.selected_container.clone().unwrap(),
+                    rx_channel: exec_rx,
+                }))
+                .await;
                 AppReturn::Continue
             } // TODO
             Action::Next => {
@@ -208,7 +218,12 @@ impl App {
                 AppReturn::Continue
             }
             Action::SendCMD => {
-                AppReturn::Continue // TODO
+                if let Some(tx_ch) = self.exec_tx.as_ref() {
+                    self.exec_cmd.push_str("\n");
+                    tx_ch.send(self.exec_cmd.clone()).await.unwrap();
+                    self.exec_cmd = String::new();
+                }
+                AppReturn::Continue
             }
             _ => AppReturn::Continue,
         }
@@ -311,5 +326,9 @@ impl ContainerManagement for App {
             self.log_position += logs.len();
         }
         self.logs.extend(logs);
+    }
+
+    fn add_tty_output(&mut self, output: String) {
+        self.logs.push(output);
     }
 }

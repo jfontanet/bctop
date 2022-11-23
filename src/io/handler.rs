@@ -8,7 +8,7 @@ use super::IoEvent;
 
 use crate::app::App;
 use crate::container_management::{
-    pause_container, start_management_process, start_monitoring_logs, stop_container,
+    enter_tty, pause_container, start_management_process, start_monitoring_logs, stop_container,
 };
 
 pub struct IoAsyncHandler {
@@ -31,10 +31,21 @@ impl IoAsyncHandler {
             IoEvent::ShowLogs(container_id) => self.start_logs_monitoring(container_id).await,
             IoEvent::StopContainer(container_id) => self.stop_container(container_id).await,
             IoEvent::PauseContainer(container_id) => self.pause_container(container_id).await,
+            IoEvent::StartExecSession(session) => self.start_exec_session(session).await,
         };
 
         if let Err(err) = result {
             error!("Oops, something wrong happen: {:?}", err);
+        }
+    }
+
+    async fn abort_current_task(&mut self) {
+        if let Some(task) = self.active_task.take() {
+            task.abort();
+            match task.await {
+                Ok(_) => return,
+                Err(_) => return,
+            };
         }
     }
 
@@ -59,16 +70,6 @@ impl IoAsyncHandler {
         Ok(())
     }
 
-    async fn abort_current_task(&mut self) {
-        if let Some(task) = self.active_task.take() {
-            task.abort();
-            match task.await {
-                Ok(_) => return,
-                Err(_) => return,
-            };
-        }
-    }
-
     async fn stop_container(&mut self, container_id: String) -> Result<()> {
         self.abort_current_task().await;
         info!("Stop container: {}", container_id);
@@ -80,6 +81,17 @@ impl IoAsyncHandler {
         self.abort_current_task().await;
         info!("Pause container: {}", container_id);
         pause_container(container_id).await;
+        Ok(())
+    }
+
+    async fn start_exec_session(&mut self, session: super::SessionObject) -> Result<()> {
+        self.abort_current_task().await;
+        info!("Start exec session: {:?}", session);
+        let app = Arc::clone(&self.app);
+        let t = tokio::spawn(async move {
+            enter_tty(session, app).await;
+        });
+        self.active_task = Some(t);
         Ok(())
     }
 }

@@ -21,4 +21,5 @@ Terminal UI used to monitor and manage docker containers and services.
     - [X] Line Jumps
     - [X] Search
 - [ ] Exec commands UI
+    - [X] Interactive session UI
     - [ ] Input bar (with auto complete?)
