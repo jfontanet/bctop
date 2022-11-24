@@ -71,14 +71,12 @@ impl IoAsyncHandler {
     }
 
     async fn stop_container(&mut self, container_id: String) -> Result<()> {
-        self.abort_current_task().await;
         info!("Stop container: {}", container_id);
         stop_container(container_id).await;
         Ok(())
     }
 
     async fn pause_container(&mut self, container_id: String) -> Result<()> {
-        self.abort_current_task().await;
         info!("Pause container: {}", container_id);
         pause_container(container_id).await;
         Ok(())
