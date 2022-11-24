@@ -69,11 +69,14 @@ where
             let cpu = c.cpu_usage;
             let mem_usage = c.memory_usage_bytes;
             let mem_total = c.memory_limit_bytes;
-            let stack = c.swarm_stack.clone().unwrap_or_default();
+            let stack = c
+                .swarm_stack
+                .clone()
+                .unwrap_or(c.compose_project.clone().unwrap_or_default());
             let service = c
                 .swarm_service
                 .clone()
-                .unwrap_or_default()
+                .unwrap_or(c.compose_service.clone().unwrap_or_default())
                 .replace(format!("{}_", stack).as_str(), "");
 
             let mem = label_for_memory(mem_usage, mem_total);
