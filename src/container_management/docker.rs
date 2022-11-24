@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::panic;
 use std::sync::Arc;
 
-use bollard::container::{ListContainersOptions, LogsOptions, StatsOptions, StopContainerOptions};
+use bollard::container::{
+    ListContainersOptions, LogsOptions, RemoveContainerOptions, StatsOptions, StopContainerOptions,
+};
 use bollard::Docker;
 
 use bollard::exec::{CreateExecOptions, StartExecResults};
@@ -209,16 +211,43 @@ pub async fn start_monitoring_logs(
 
 pub async fn stop_container(container_id: String) {
     let docker = Docker::connect_with_local_defaults().unwrap();
-    docker
-        .stop_container(
-            &container_id,
-            Some(StopContainerOptions {
-                t: 10,
-                ..Default::default()
-            }),
-        )
-        .await
-        .unwrap();
+    match docker.inspect_container(&container_id, None).await {
+        Ok(container) => {
+            let status = container
+                .state
+                .unwrap_or_default()
+                .status
+                .unwrap_or(ContainerStateStatusEnum::EMPTY);
+            if status == ContainerStateStatusEnum::RUNNING {
+                docker
+                    .stop_container(
+                        &container_id,
+                        Some(StopContainerOptions {
+                            t: 10,
+                            ..Default::default()
+                        }),
+                    )
+                    .await
+                    .unwrap();
+            } else if status == ContainerStateStatusEnum::EXITED {
+                docker
+                    .remove_container(
+                        &container_id,
+                        Some(RemoveContainerOptions {
+                            force: true,
+                            ..Default::default()
+                        }),
+                    )
+                    .await
+                    .unwrap();
+            } else {
+                debug!("Container is not running or exited: {}", status);
+            }
+        }
+        Err(e) => {
+            error!("Error stopping container: {}", e);
+        }
+    }
 }
 
 pub async fn pause_container(container_id: String) {
