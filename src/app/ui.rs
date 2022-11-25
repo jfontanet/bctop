@@ -183,7 +183,7 @@ where
         let mut logs = match logs
             .iter()
             .rev()
-            .take(available_height)
+            .take(available_height / 2)
             .rev()
             .map(|l| {
                 let mut i = available_width;
