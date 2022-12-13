@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?
         .json::<Vec<Release>>()
         .await?;
-    println!("{:?}", resp);
+
     let last_release = resp.iter().reduce(|a, b| {
         let mut a_versions = a.name.split(".");
         let a_major = a_versions
