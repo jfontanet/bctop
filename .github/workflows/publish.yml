@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build and publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,7 +17,6 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: x86_64-unknown-linux-musl
       
       - name: Build
         uses: actions-rs/cargo@v1
@@ -46,6 +45,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/x86_64-unknown-linux-musl/release/bctop
+          asset_path: ./target/release/bctop
           asset_name: bctop
           asset_content_type: application/octet-stream
