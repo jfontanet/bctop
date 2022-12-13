@@ -41,6 +41,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     start_ui(&app_ui).await?;
     // Check for updates and print to stdout.
+    println!("Checking for updates...");
     let cli = reqwest::Client::new();
     let resp = cli
         .get("https://api.github.com/repos/jfontanet/bctop/releases")
@@ -97,8 +98,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 "New version available: {} (from: {}) \n Download here: {}",
                 last_release.name, VERSION, last_release.assets[0].browser_download_url
             );
+            return Ok(());
         }
     }
+    println!("No updates available.");
     Ok(())
 }
 
