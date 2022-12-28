@@ -140,31 +140,48 @@ where
         let available_height = chunks[0].height as usize - 1; // -1 for the TOP border
         let available_width = chunks[0].width as usize;
         let pos = app.log_position();
-        let logs = match logs
-            .iter()
-            .rev()
-            .take(available_height + pos)
-            .rev()
-            .map(|l| {
-                let mut i = available_width;
-                let mut line = String::new();
-                loop {
-                    line.extend(l.chars().skip(i - available_width).take(available_width));
-                    if i > l.chars().count() {
-                        break;
-                    }
-                    i += available_width;
-                    line.push('\n');
+
+        let logs_iter = logs.iter().rev().take(available_height + pos).rev();
+        let mut logs = Text::raw("");
+        for l in logs_iter {
+            let mut i = available_width;
+            let mut line = String::new();
+            loop {
+                line.extend(l.chars().skip(i - available_width).take(available_width));
+                if i > l.chars().count() {
+                    break;
                 }
+                i += available_width;
+                line.push('\n');
+            }
+
+            let t = if let Some(s) = app.search() {
+                if line.contains(s) {
+                    let mut content = vec![];
+                    if line.starts_with(s) {
+                        content.push(Span::styled(s, Style::default().fg(Color::Yellow)));
+                    }
+                    let lv: Vec<String> = line.split(s).map(|e| e.to_owned()).collect();
+                    for segment in lv.iter() {
+                        content.push(Span::raw(segment.to_owned()));
+                        if lv.last() != Some(&segment) {
+                            content.push(Span::styled(s, Style::default().fg(Color::Yellow)));
+                        }
+                    }
+                    if line.ends_with(s) {
+                        content.push(Span::styled(s, Style::default().fg(Color::Yellow)));
+                    }
+                    let mut txt = Text::raw("");
+                    txt.lines = vec![Spans::from(content)];
+                    txt
+                } else {
+                    Text::raw(line)
+                }
+            } else {
                 Text::raw(line)
-            })
-            .reduce(|mut acc, v| {
-                acc.extend(v);
-                acc
-            }) {
-            Some(t) => t,
-            None => Text::raw(""),
-        };
+            };
+            logs.extend(t);
+        }
 
         let p = Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title(format!(
             "Logs for {}",
