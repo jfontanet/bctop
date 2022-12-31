@@ -12,7 +12,7 @@ use bollard::service::{ContainerStateStatusEnum, ContainerSummary};
 use chrono::TimeZone;
 use chrono::Utc;
 use futures::stream::StreamExt;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 
@@ -218,30 +218,32 @@ pub async fn stop_container(container_id: String) {
                 .unwrap_or_default()
                 .status
                 .unwrap_or(ContainerStateStatusEnum::EMPTY);
-            if status == ContainerStateStatusEnum::RUNNING {
-                docker
-                    .stop_container(
-                        &container_id,
-                        Some(StopContainerOptions {
-                            t: 10,
-                            ..Default::default()
-                        }),
-                    )
-                    .await
-                    .unwrap();
-            } else if status == ContainerStateStatusEnum::EXITED {
-                docker
-                    .remove_container(
-                        &container_id,
-                        Some(RemoveContainerOptions {
-                            force: true,
-                            ..Default::default()
-                        }),
-                    )
-                    .await
-                    .unwrap();
-            } else {
-                debug!("Container is not running or exited: {}", status);
+            match status {
+                ContainerStateStatusEnum::RUNNING => {
+                    docker
+                        .stop_container(
+                            &container_id,
+                            Some(StopContainerOptions {
+                                t: 10,
+                                ..Default::default()
+                            }),
+                        )
+                        .await
+                        .unwrap();
+                }
+                ContainerStateStatusEnum::EXITED | ContainerStateStatusEnum::CREATED => {
+                    docker
+                        .remove_container(
+                            &container_id,
+                            Some(RemoveContainerOptions {
+                                force: true,
+                                ..Default::default()
+                            }),
+                        )
+                        .await
+                        .unwrap();
+                }
+                _ => warn!("Container in invalid status: {}", status),
             }
         }
         Err(e) => {
