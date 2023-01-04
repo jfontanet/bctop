@@ -15,7 +15,6 @@ where
     B: Backend,
 {
     let size = rect.size();
-    // TODO check size
 
     // Vertical layout
     let chunks = Layout::default()
@@ -30,7 +29,7 @@ fn draw_body<B>(frame: &mut Frame<B>, chunks: Vec<Rect>, app: &App)
 where
     B: Backend,
 {
-    if app.state.is_monitoring() {
+    if app.state().is_monitoring() {
         let available_width = chunks[0].width as usize;
 
         let containers = app.containers();
@@ -197,7 +196,7 @@ where
     } else if app.state().is_exec_command() {
         let mut logs = app.logs().clone();
         let available_height = chunks[0].height as usize - 1; // -1 for the TOP border
-                                                              // let available_width = chunks[0].width as usize;
+
         if let Some(last) = logs.last_mut() {
             *last = format!("{}{}", last, app.exec_cmd());
         }
@@ -206,19 +205,7 @@ where
             .rev()
             .take(available_height / 2)
             .rev()
-            .map(|l| {
-                // let mut i = available_width;
-                // let mut line = String::new();
-                // loop {
-                //     line.extend(l.chars().skip(i - available_width).take(available_width));
-                //     if i > l.chars().count() {
-                //         break;
-                //     }
-                //     i += available_width;
-                //     line.push('\n');
-                // }
-                l.into_text().unwrap()
-            })
+            .map(|l| l.into_text().unwrap())
             .reduce(|mut acc, v| {
                 acc.extend(v);
                 acc

@@ -6,7 +6,7 @@ pub mod ui;
 use crate::io::SessionObject;
 use crate::{inputs::key::Key, io::IoEvent};
 use actions::{Action, Actions};
-use log::error;
+use log::debug;
 use state::AppState;
 
 use self::container_management::{Container, ContainerManagement};
@@ -342,7 +342,7 @@ impl ContainerManagement for App {
     }
 
     fn add_tty_output(&mut self, output: String) {
-        error!("TTY Output: {}", output);
+        debug!("TTY Output: {}", output);
         if output == "exit" {
             self.state = AppState::Monitoring;
             self.actions = self.state.get_actions();
@@ -350,7 +350,7 @@ impl ContainerManagement for App {
             self.log_position = 0;
         } else if self.state.is_exec_command() {
             if let Some(cmd) = &self.last_cmd {
-                if output == cmd.to_owned() {
+                if output.trim() == cmd.to_owned().trim() {
                     self.last_cmd = None;
                     return;
                 }
