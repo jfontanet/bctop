@@ -6,6 +6,7 @@ pub mod ui;
 use crate::io::SessionObject;
 use crate::{inputs::key::Key, io::IoEvent};
 use actions::{Action, Actions};
+use log::error;
 use state::AppState;
 
 use self::container_management::{Container, ContainerManagement};
@@ -31,6 +32,7 @@ pub struct App {
     // Execution attributes
     exec_tx: Option<tokio::sync::mpsc::Sender<String>>,
     exec_cmd: String,
+    last_cmd: Option<String>,
 }
 
 impl App {
@@ -50,6 +52,7 @@ impl App {
             search: None,
             exec_tx: None,
             exec_cmd: String::new(),
+            last_cmd: None,
         }
     }
 
@@ -116,7 +119,7 @@ impl App {
                 }))
                 .await;
                 AppReturn::Continue
-            } // TODO
+            }
             Action::Next => {
                 self.next();
                 AppReturn::Continue
@@ -212,15 +215,25 @@ impl App {
 
     async fn do_state_exec_command_actions(&mut self, action: Action) -> AppReturn {
         match action {
+            // TODO: Handle exists
             Action::Quit => {
                 self.state = AppState::Monitoring;
                 self.actions = self.state.get_actions();
+                self.logs.clear();
+                self.log_position = 0;
+                if let Some(tx_ch) = self.exec_tx.as_ref() {
+                    tx_ch.send(format!("exit\n")).await.unwrap();
+                }
                 AppReturn::Continue
             }
             Action::SendCMD => {
                 if let Some(tx_ch) = self.exec_tx.as_ref() {
                     self.exec_cmd.push_str("\n");
+                    if let Some(last) = self.logs.last_mut() {
+                        *last = format!("{}{}", last, self.exec_cmd);
+                    }
                     tx_ch.send(self.exec_cmd.clone()).await.unwrap();
+                    self.last_cmd = Some(self.exec_cmd.clone());
                     self.exec_cmd = String::new();
                 }
                 AppReturn::Continue
@@ -329,6 +342,20 @@ impl ContainerManagement for App {
     }
 
     fn add_tty_output(&mut self, output: String) {
-        self.logs.push(output);
+        error!("TTY Output: {}", output);
+        if output == "exit" {
+            self.state = AppState::Monitoring;
+            self.actions = self.state.get_actions();
+            self.logs.clear();
+            self.log_position = 0;
+        } else if self.state.is_exec_command() {
+            if let Some(cmd) = &self.last_cmd {
+                if output == cmd.to_owned() {
+                    self.last_cmd = None;
+                    return;
+                }
+            }
+            self.logs.push(output);
+        }
     }
 }

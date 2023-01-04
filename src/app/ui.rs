@@ -1,3 +1,4 @@
+use ansi_to_tui::IntoText;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -194,26 +195,29 @@ where
             draw_help(frame, chunks[1], format!("{}", app.actions()).as_str());
         }
     } else if app.state().is_exec_command() {
-        let logs = app.logs();
+        let mut logs = app.logs().clone();
         let available_height = chunks[0].height as usize - 1; // -1 for the TOP border
-        let available_width = chunks[0].width as usize;
-        let mut logs = match logs
+                                                              // let available_width = chunks[0].width as usize;
+        if let Some(last) = logs.last_mut() {
+            *last = format!("{}{}", last, app.exec_cmd());
+        }
+        let logs = match logs
             .iter()
             .rev()
             .take(available_height / 2)
             .rev()
             .map(|l| {
-                let mut i = available_width;
-                let mut line = String::new();
-                loop {
-                    line.extend(l.chars().skip(i - available_width).take(available_width));
-                    if i > l.chars().count() {
-                        break;
-                    }
-                    i += available_width;
-                    line.push('\n');
-                }
-                Text::raw(line)
+                // let mut i = available_width;
+                // let mut line = String::new();
+                // loop {
+                //     line.extend(l.chars().skip(i - available_width).take(available_width));
+                //     if i > l.chars().count() {
+                //         break;
+                //     }
+                //     i += available_width;
+                //     line.push('\n');
+                // }
+                l.into_text().unwrap()
             })
             .reduce(|mut acc, v| {
                 acc.extend(v);
@@ -221,8 +225,7 @@ where
             }) {
             Some(l) => l,
             None => Text::raw(""),
-        }; // TODO show last lines (line breaks hide them)
-        logs.extend(Text::raw(app.exec_cmd()));
+        };
         let p =
             Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title("Exec CMD"));
         frame.render_widget(p, chunks[0]);

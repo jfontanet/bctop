@@ -20,7 +20,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 async fn main() -> Result<(), Box<dyn Error>> {
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-        .build("log/output.log")?;
+        .build("/var/log/bctop.log")?;
 
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
@@ -113,7 +113,7 @@ struct Release {
 
 #[derive(Debug, Deserialize)]
 struct Asset {
-    name: String,
+    // name: String,
     browser_download_url: String,
-    state: String,
+    // state: String,
 }
