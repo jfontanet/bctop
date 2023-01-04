@@ -6,6 +6,7 @@ use eyre::Result;
 use std::sync::Arc;
 use tokio;
 
+use directories::BaseDirs;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Root};
@@ -20,7 +21,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 async fn main() -> Result<(), Box<dyn Error>> {
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-        .build("/var/log/bctop.log")?;
+        .build(BaseDirs::new().unwrap().data_dir().join("logs/bctop.log"))?;
 
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
