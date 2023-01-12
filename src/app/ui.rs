@@ -43,26 +43,26 @@ where
             let status = &c.status;
             let status_label = match status {
                 crate::app::container_management::ContainerStatus::Created => {
-                    Span::styled(" ", Style::default().bg(Color::Gray))
+                    Span::styled("#", Style::default().fg(Color::Gray))
                 }
                 crate::app::container_management::ContainerStatus::Running => {
-                    Span::styled(" ", Style::default().bg(Color::Green))
+                    Span::styled("✓", Style::default().fg(Color::Green))
                 }
                 crate::app::container_management::ContainerStatus::Paused => {
-                    Span::styled(" ", Style::default().bg(Color::Yellow))
+                    Span::styled("॥", Style::default().fg(Color::Yellow))
                 }
                 crate::app::container_management::ContainerStatus::Stopped
                 | crate::app::container_management::ContainerStatus::Exited => {
-                    Span::styled(" ", Style::default().bg(Color::Red))
+                    Span::styled("#", Style::default().fg(Color::Red))
                 }
                 crate::app::container_management::ContainerStatus::Restarting => {
-                    Span::styled(" ", Style::default().bg(Color::LightGreen))
+                    Span::styled("↻", Style::default().fg(Color::LightGreen))
                 }
                 crate::app::container_management::ContainerStatus::Removing => {
-                    Span::styled(" ", Style::default().bg(Color::LightRed))
+                    Span::styled("✖", Style::default().fg(Color::LightRed))
                 }
                 crate::app::container_management::ContainerStatus::Dead => {
-                    Span::styled(" ", Style::default().bg(Color::Black))
+                    Span::styled("✖", Style::default().fg(Color::Black))
                 }
             };
             let cpu = c.cpu_usage;
@@ -122,7 +122,7 @@ where
                 Constraint::Length(12), // ID
                 // Constraint::Percentage(15), // Name
                 Constraint::Percentage(15), // SERVICE
-                Constraint::Length(5),      // CPU
+                Constraint::Length(7),      // CPU
                 Constraint::Percentage(20), // MEM
                 Constraint::Percentage(15), // STACK
             ])
@@ -276,5 +276,5 @@ fn label_for_memory(mem_usage: f32, mem_total: f32) -> String {
 }
 
 fn label_for_cpu(cpu_usage: f32) -> String {
-    format!("{:.2}%", cpu_usage)
+    format!("{:^7}", format!("{:.2}%", cpu_usage))
 }
