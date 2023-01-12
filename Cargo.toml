@@ -20,7 +20,7 @@ bollard = "0.13"
 reqwest= {version="0.11", default-features = false, features=["json", "rustls-tls"]}
 serde = {version="1.0", features=["derive"]}
 serde_json = "1.0"
-ansi-to-tui = {git="https://github.com/uttarayan21/ansi-to-tui.git", rev="refs/pull/19/head"}
+# ansi-to-tui = {git="https://github.com/uttarayan21/ansi-to-tui.git", rev="refs/pull/19/head"}
 directories = "4.0.1"
 
 log4rs = "1.2"

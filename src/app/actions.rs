@@ -9,7 +9,7 @@ use crate::inputs::key::Key;
 pub enum Action {
     Quit,
     ShowLogs,
-    ExecCommands,
+    //ExecCommands,
     SendCMD,
     Next,
     Previous,
@@ -17,6 +17,7 @@ pub enum Action {
     ScrollDown,
     Search,
     Remove,
+    // Container control
     StopContainer,
     PauseContainer,
 }
@@ -24,10 +25,10 @@ pub enum Action {
 impl Action {
     /// All available actions
     pub fn iterator() -> Iter<'static, Action> {
-        static ACTIONS: [Action; 12] = [
+        static ACTIONS: [Action; 11] = [
             Action::Quit,
             Action::ShowLogs,
-            Action::ExecCommands,
+            //Action::ExecCommands,
             Action::SendCMD,
             Action::Next,
             Action::Previous,
@@ -46,7 +47,7 @@ impl Action {
         match self {
             Action::Quit => &[Key::Char('q'), Key::Ctrl('c'), Key::Esc],
             Action::ShowLogs => &[Key::Char('l'), Key::Enter],
-            Action::ExecCommands => &[Key::Char('e')],
+            //Action::ExecCommands => &[Key::Char('e')],
             Action::SendCMD => &[Key::Enter],
             Action::Next => &[Key::Down],
             Action::Previous => &[Key::Up],
@@ -66,7 +67,7 @@ impl Display for Action {
         let str = match self {
             Action::Quit => "Quit",
             Action::ShowLogs => "Show Logs",
-            Action::ExecCommands => "Exec CMD",
+            //Action::ExecCommands => "Exec CMD",
             Action::SendCMD => "Send CMD",
             Action::Next => "Next",
             Action::Previous => "Previous",

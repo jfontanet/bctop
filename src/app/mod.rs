@@ -3,7 +3,6 @@ use crate::container_management;
 pub mod state;
 pub mod ui;
 
-use crate::io::SessionObject;
 use crate::{inputs::key::Key, io::IoEvent};
 use actions::{Action, Actions};
 use log::debug;
@@ -30,9 +29,9 @@ pub struct App {
     log_position: usize, // Reverse index from where to start taking log lines
     search: Option<String>,
     // Execution attributes
-    exec_tx: Option<tokio::sync::mpsc::Sender<String>>,
-    exec_cmd: String,
-    last_cmd: Option<String>,
+    // exec_tx: Option<tokio::sync::mpsc::Sender<String>>,
+    // exec_cmd: String,
+    // last_cmd: Option<String>,
 }
 
 impl App {
@@ -50,9 +49,9 @@ impl App {
             logs: Vec::new(),
             log_position: 0,
             search: None,
-            exec_tx: None,
-            exec_cmd: String::new(),
-            last_cmd: None,
+            // exec_tx: None,
+            // exec_cmd: String::new(),
+            // last_cmd: None,
         }
     }
 
@@ -64,19 +63,19 @@ impl App {
                 return AppReturn::Continue;
             }
         }
-        if self.state().is_exec_command() {
-            if let Some(c) = key.get_char() {
-                self.exec_cmd.push(c);
-                return AppReturn::Continue;
-            }
-        }
+        // if self.state().is_exec_command() {
+        //     if let Some(c) = key.get_char() {
+        //         self.exec_cmd.push(c);
+        //         return AppReturn::Continue;
+        //     }
+        // }
         if let Some(action) = self.actions.find(key) {
             if self.state.is_monitoring() {
                 self.do_state_monitoring_actions(*action).await
             } else if self.state.is_logging() {
                 self.do_state_logging_actions(*action).await
-            } else if self.state.is_exec_command() {
-                self.do_state_exec_command_actions(*action).await
+            // } else if self.state.is_exec_command() {
+            //     self.do_state_exec_command_actions(*action).await
             } else {
                 AppReturn::Continue
             }
@@ -100,7 +99,7 @@ impl App {
                     .await;
                 AppReturn::Continue
             }
-            Action::ExecCommands => {
+            /* Action::ExecCommands => {
                 if self.selected_container.is_none() {
                     return AppReturn::Continue; // No container selected, do nothing
                 }
@@ -119,7 +118,7 @@ impl App {
                 }))
                 .await;
                 AppReturn::Continue
-            }
+            } */
             Action::Next => {
                 self.next();
                 AppReturn::Continue
@@ -213,34 +212,34 @@ impl App {
         }
     }
 
-    async fn do_state_exec_command_actions(&mut self, action: Action) -> AppReturn {
-        match action {
-            // TODO: Handle exists
-            Action::Quit => {
-                self.state = AppState::Monitoring;
-                self.actions = self.state.get_actions();
-                self.logs.clear();
-                self.log_position = 0;
-                if let Some(tx_ch) = self.exec_tx.as_ref() {
-                    tx_ch.send(format!("exit\n")).await.unwrap();
-                }
-                AppReturn::Continue
-            }
-            Action::SendCMD => {
-                if let Some(tx_ch) = self.exec_tx.as_ref() {
-                    self.exec_cmd.push_str("\n");
-                    if let Some(last) = self.logs.last_mut() {
-                        *last = format!("{}{}", last, self.exec_cmd);
-                    }
-                    tx_ch.send(self.exec_cmd.clone()).await.unwrap();
-                    self.last_cmd = Some(self.exec_cmd.clone());
-                    self.exec_cmd = String::new();
-                }
-                AppReturn::Continue
-            }
-            _ => AppReturn::Continue,
-        }
-    }
+    // async fn do_state_exec_command_actions(&mut self, action: Action) -> AppReturn {
+    //     match action {
+    //         // TODO: Handle exists
+    //         Action::Quit => {
+    //             self.state = AppState::Monitoring;
+    //             self.actions = self.state.get_actions();
+    //             self.logs.clear();
+    //             self.log_position = 0;
+    //             if let Some(tx_ch) = self.exec_tx.as_ref() {
+    //                 tx_ch.send(format!("exit\n")).await.unwrap();
+    //             }
+    //             AppReturn::Continue
+    //         }
+    //         Action::SendCMD => {
+    //             if let Some(tx_ch) = self.exec_tx.as_ref() {
+    //                 self.exec_cmd.push_str("\n");
+    //                 if let Some(last) = self.logs.last_mut() {
+    //                     *last = format!("{}{}", last, self.exec_cmd);
+    //                 }
+    //                 tx_ch.send(self.exec_cmd.clone()).await.unwrap();
+    //                 self.last_cmd = Some(self.exec_cmd.clone());
+    //                 self.exec_cmd = String::new();
+    //             }
+    //             AppReturn::Continue
+    //         }
+    //         _ => AppReturn::Continue,
+    //     }
+    // }
 
     /// We could update the app or dispatch event on tick
     pub async fn update_on_tick(&mut self) -> AppReturn {
@@ -280,9 +279,9 @@ impl App {
     pub fn search(&self) -> &Option<String> {
         &self.search
     }
-    pub fn exec_cmd(&self) -> &String {
-        &self.exec_cmd
-    }
+    // pub fn exec_cmd(&self) -> &String {
+    //     &self.exec_cmd
+    // }
 
     pub fn next(&mut self) {
         let index = match &self.selected_container {
@@ -343,19 +342,19 @@ impl ContainerManagement for App {
 
     fn add_tty_output(&mut self, output: String) {
         debug!("TTY Output: {}", output);
-        if output == "exit" {
-            self.state = AppState::Monitoring;
-            self.actions = self.state.get_actions();
-            self.logs.clear();
-            self.log_position = 0;
-        } else if self.state.is_exec_command() {
-            if let Some(cmd) = &self.last_cmd {
-                if output.trim() == cmd.to_owned().trim() {
-                    self.last_cmd = None;
-                    return;
-                }
-            }
-            self.logs.push(output);
-        }
+        // if output == "exit" {
+        //     self.state = AppState::Monitoring;
+        //     self.actions = self.state.get_actions();
+        //     self.logs.clear();
+        //     self.log_position = 0;
+        // } else if self.state.is_exec_command() {
+        //     if let Some(cmd) = &self.last_cmd {
+        //         if output.trim() == cmd.to_owned().trim() {
+        //             self.last_cmd = None;
+        //             return;
+        //         }
+        //     }
+        //     self.logs.push(output);
+        // }
     }
 }

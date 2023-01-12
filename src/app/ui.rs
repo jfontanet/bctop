@@ -1,4 +1,3 @@
-use ansi_to_tui::IntoText;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -193,30 +192,30 @@ where
         } else {
             draw_help(frame, chunks[1], format!("{}", app.actions()).as_str());
         }
-    } else if app.state().is_exec_command() {
-        let mut logs = app.logs().clone();
-        let available_height = chunks[0].height as usize - 1; // -1 for the TOP border
+    // } else if app.state().is_exec_command() {
+    //     let mut logs = app.logs().clone();
+    //     let available_height = chunks[0].height as usize - 1; // -1 for the TOP border
 
-        if let Some(last) = logs.last_mut() {
-            *last = format!("{}{}", last, app.exec_cmd());
-        }
-        let logs = match logs
-            .iter()
-            .rev()
-            .take(available_height / 2)
-            .rev()
-            .map(|l| l.into_text().unwrap())
-            .reduce(|mut acc, v| {
-                acc.extend(v);
-                acc
-            }) {
-            Some(l) => l,
-            None => Text::raw(""),
-        };
-        let p =
-            Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title("Exec CMD"));
-        frame.render_widget(p, chunks[0]);
-        draw_help(frame, chunks[1], format!("{}", app.actions()).as_str());
+    //     if let Some(last) = logs.last_mut() {
+    //         *last = format!("{}{}", last, app.exec_cmd());
+    //     }
+    //     let logs = match logs
+    //         .iter()
+    //         .rev()
+    //         .take(available_height / 2)
+    //         .rev()
+    //         .map(|l| l.into_text().unwrap())
+    //         .reduce(|mut acc, v| {
+    //             acc.extend(v);
+    //             acc
+    //         }) {
+    //         Some(l) => l,
+    //         None => Text::raw(""),
+    //     };
+    //     let p =
+    //         Paragraph::new(logs).block(Block::default().borders(Borders::TOP).title("Exec CMD"));
+    //     frame.render_widget(p, chunks[0]);
+    //     draw_help(frame, chunks[1], format!("{}", app.actions()).as_str());
     } else {
         let initialized_text = "Not Initialized !";
 
