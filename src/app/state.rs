@@ -4,7 +4,7 @@ use super::actions::{Action, Actions};
 pub enum AppState {
     Monitoring,
     Logging { container: String },
-    //ExecCommand { container: String },
+    Inspecting { container: String },
 }
 
 impl Default for AppState {
@@ -35,8 +35,6 @@ impl AppState {
                 Action::Remove,
             ]
             .into()
-        // } else if self.is_exec_command() {
-        //     vec![Action::Quit, Action::SendCMD].into()
         } else {
             vec![Action::Quit].into()
         }
@@ -49,8 +47,7 @@ impl AppState {
     pub fn is_logging(&self) -> bool {
         matches!(self, &Self::Logging { .. })
     }
-
-    // pub fn is_exec_command(&self) -> bool {
-    //     matches!(self, &Self::ExecCommand { .. })
-    // }
+    pub fn is_inspecting(&self) -> bool {
+        matches!(self, &Self::Inspecting { .. })
+    }
 }
